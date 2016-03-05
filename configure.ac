@@ -422,6 +422,16 @@ AC_CHECK_HEADER([ldns/ldns.h], [
 AM_CONDITIONAL(USE_LDNS, test x$use_ldns = xyes)
 AC_SUBST([LDNS_LIBS])
 
+AS_IF([test x$use_ldns = xyes], [
+	PKG_CHECK_MODULES([REDIS], [hiredis], [
+		AC_DEFINE(USE_REDIS,[1], [define to use the redis library])
+		use_redis=yes
+	])
+])
+AM_CONDITIONAL(USE_REDIS, test x$use_redis = xyes)
+AC_SUBST([REDIS_CFLAGS])
+AC_SUBST([REDIS_LIBS])
+
 case $host_os in
   cygwin* | mingw* | pw32* | cegcc*)
     AC_CHECK_LIB([ws2_32], [_head_libws2_32_a])
@@ -483,6 +493,7 @@ AC_CONFIG_FILES([Makefile
                  src/plugins/example-ldns-blocking/Makefile
                  src/plugins/example-ldns-opendns-deviceid/Makefile
                  src/plugins/example-ldns-opendns-set-client-ip/Makefile
+                 src/plugins/ldns-a-redis/Makefile
                  test/Makefile])
 
 AC_OUTPUT

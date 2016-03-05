@@ -1,4 +1,3 @@
-
 SUBDIRS = \
 	example \
 	example-logging
@@ -9,4 +8,9 @@ SUBDIRS += \
 	example-ldns-blocking \
 	example-ldns-opendns-deviceid \
 	example-ldns-opendns-set-client-ip
+endif
+
+if USE_REDIS
+SUBDIRS += \
+	ldns-a-redis
 endif
