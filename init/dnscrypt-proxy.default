@@ -1,0 +1,7 @@
+DAEMON_LOGDIR=/var/log/dnscrypt
+DAEMON_UID="proxy"
+DAEMON_GID="redis"
+BIND_ADDR=127.0.0.1
+PORT=1054
+#DAEMON_OPTS="-u $DAEMON_UID -a $BIND_ADDR:$BIND_PORT -l $DAEMON_LOGDIR/dnscrypt-proxy.log --plugin libdcplugin_ldns_cache.la,$DAEMON_LOGDIR/ldns.log,192.168.96.10"
+DAEMON_OPTS="-a $BIND_ADDR:$PORT -R cisco-familyshield -l $DAEMON_LOGDIR/dnscrypt-proxy.log --plugin libdcplugin_ldns_a_redis.la"

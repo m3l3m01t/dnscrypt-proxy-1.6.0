@@ -66,50 +66,50 @@ static redisContext * redis = NULL;
 int
 dcplugin_init(DCPlugin * const dcplugin, int argc, char *argv[])
 {
-	int opt;
+    int opt;
 
-    fprintf(stderr, "dcplugin_init\n");
+    fprintf(stdout, "dcplugin_init\n");
 
     optind = 1;
 
-	while ((opt = getopt(argc, argv, "s:h:p:")) != -1) {
-		switch (opt) {
-			case 's':
-                fprintf(stderr, "redis socket %s\n", optarg);
-				redis_sock = strdup(optarg);
-				break;
-			case 'h':
-                fprintf(stderr, "redis host %s\n", optarg);
-				redis_host = strdup(optarg);
-				break;
-			case 'p':
-                fprintf(stderr, "redis port %s\n", optarg);
-				redis_port = strtoul(optarg, NULL, 10);
-				if (redis_port == ULONG_MAX) {
-					fprintf(stderr, "invalid redis port %s", optarg);
-					return -1;
-				}
-				break;
-			default:
+    while ((opt = getopt(argc, argv, "s:h:p:")) != -1) {
+        switch (opt) {
+            case 's':
+                fprintf(stdout, "redis socket %s\n", optarg);
+                redis_sock = strdup(optarg);
+                break;
+            case 'h':
+                fprintf(stdout, "redis host %s\n", optarg);
+                redis_host = strdup(optarg);
+                break;
+            case 'p':
+                fprintf(stdout, "redis port %s\n", optarg);
+                redis_port = strtoul(optarg, NULL, 10);
+                if (redis_port == ULONG_MAX) {
+                    fprintf(stderr, "invalid redis port %s", optarg);
+                    return -1;
+                }
+                break;
+            default:
                 fprintf(stderr, "valid params: [-h host -p port ] | [-s socket]\n");
                 return -1;
-		}
-	}
+        }
+    }
 
-	if (redis_host) {
-        fprintf(stderr, "connect to %s, port %d\n", redis_host, redis_port);
-		redis = redisConnect(redis_host, redis_port);
-	} else {
-        fprintf(stderr, "connect to %s\n", redis_sock);
-		redis = redisConnectUnix(redis_sock);
-	}
+    if (redis_host) {
+        fprintf(stdout, "connect to %s, port %d\n", redis_host, redis_port);
+        redis = redisConnect(redis_host, redis_port);
+    } else {
+        fprintf(stdout, "connect to %s\n", redis_sock);
+        redis = redisConnectUnix(redis_sock);
+    }
 
     if (redis->err) {
         fprintf(stderr, "Connection error: %s\n", redis->errstr);
-		return -1;
+        return -1;
     }
 
-	//redisEnableKeepAlive(redis);
+    //redisEnableKeepAlive(redis);
     return 0;
 }
 
@@ -130,9 +130,9 @@ dcplugin_destroy(DCPlugin * const dcplugin)
 int
 dcplugin_destroy(DCPlugin * const dcplugin)
 {
-	if (redis) {
-		redisFree(redis);
-	}
+    if (redis) {
+        redisFree(redis);
+    }
     return 0;
 }
 
@@ -173,9 +173,9 @@ _redisPrintReply(FILE *fp, const char *prefix, const redisReply *reply)
 DCPluginSyncFilterResult
 dcplugin_sync_post_filter(DCPlugin *dcplugin, DCPluginDNSPacket *dcp_packet)
 {
-	int i, j, commands;
+    int i, j, commands;
     char *domain_name = NULL;
-	redisReply *reply = NULL;
+    redisReply *reply = NULL;
     //struct plugin_priv_data *priv = dcplugin_get_user_data(dcplugin);
 
     ldns_pkt *resp = NULL;
@@ -207,7 +207,7 @@ dcplugin_sync_post_filter(DCPlugin *dcplugin, DCPluginDNSPacket *dcp_packet)
 
     domain_name = ldns_rdf2str(ldns_rr_owner(rr));
 
-    fprintf(stderr, "Q: %s\n", domain_name);
+    fprintf(stdout, "Q: %s\n", domain_name);
 
     list = ldns_pkt_answer (resp);
 
@@ -229,47 +229,33 @@ dcplugin_sync_post_filter(DCPlugin *dcplugin, DCPluginDNSPacket *dcp_packet)
 
             if (rdf_type == LDNS_RDF_TYPE_A) {
                 char *ipaddr = ldns_rdf2str(rdf);
-                fprintf(stderr, "sadd %s %s\n", domain_name, ipaddr);
-				redisAppendCommand(redis, "sadd %s %s", domain_name, ipaddr);
+//                fprintf(stdout, "sadd %s %s\n", domain_name, ipaddr);
+                redisAppendCommand(redis, "sadd %s %s", domain_name, ipaddr);
                 commands++;
                 free(ipaddr);
             }
         }
     }
 
-    fprintf(stderr, "get reply 1\n");
+//    fprintf(stdout, "get reply 1\n");
     while (commands--) {
         redisGetReply(redis, (void **)&reply);
-	/* TODO: parse results and free memory */
+    /* TODO: parse results and free memory */
         if (reply) {
-            _redisPrintReply(stderr, "  ", reply);
+//            _redisPrintReply(stdout, "  ", reply);
             freeReplyObject(reply);
         }
     }
 
-    fprintf(stderr,  "PUBLISH DNAME %s\n", domain_name);
-	reply = redisCommand(redis, "PUBLISH DNAME %s", domain_name);
-	/* TODO: parse results and free memory */
+    fprintf(stdout,  "PUBLISH DNAME %s\n", domain_name);
+    reply = redisCommand(redis, "PUBLISH DNAME %s", domain_name);
+    /* TODO: parse results and free memory */
 
-#if 1
-    _redisPrintReply(stderr, "  ", reply);
+    if (redis->err) {
+        fprintf(stderr, "Publish DNAME %s failed: %s\n", domain_name, redis->errstr);
+    }
+//  _redisPrintReply(stdout, "  ", reply);
     freeReplyObject(reply);
-#else
-    fprintf(stderr, "reply type %d\n", reply->type);
-    if (reply->type == REDIS_REPLY_ARRAY) {
-        int j;
-        for (j = 0; j < reply->elements; j++) {
-            fprintf(stderr, "%u) %s\n", j, reply->element[j]->str);
-        }
-    } else if ({
-        fprintf(stderr, " %s\n", reply->str);
-    }
-
-	if (reply) {
-        freeReplyObject(reply);
-        reply = NULL;
-    }
-#endif
 
 packet_end:
     if (domain_name)

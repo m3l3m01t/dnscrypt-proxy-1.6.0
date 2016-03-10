@@ -1,0 +1,73 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          dnscrypt-proxy
+# Required-Start:    $local_fs $network mysql memcached
+# Required-Stop:     $local_fs $network mysql memcached
+# Should-Start:      
+# Should-Stop:       
+# Default-Start:     2 3 4 5
+# Default-Stop:      1 6
+# Short-Description: Start the dnscrypt-proxy server.
+# Description:       crypted dns proxy server.
+### END INIT INFO
+
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON=/usr/local/sbin/dnscrypt-proxy
+NAME=dnscrypt-proxy
+DESC="crypted dns proxy server"
+
+RUNDIR=/var/run/dnscrypt
+LOGDIR=/var/log/dnscrypt
+
+PIDFILE=$RUNDIR/$NAME.pid
+SCRIPTNAME=/etc/init.d/$NAME
+
+CONF_FILE=/etc/default/dnscrypt-proxy 
+test -f $CONF_FILE && . $CONF_FILE
+
+test -x $DAEMON || exit 0
+
+set -e
+
+. /lib/lsb/init-functions
+
+[ -e $LOGDIR ] || install -d -o $DAEMON_UID -g $DAEMON_GID $LOGDIR
+[ -e $RUNDIR ] || install -d -o $DAEMON_UID -g $DAEMON_GID $RUNDIR
+
+case "$1" in
+    start)
+        log_daemon_msg "Starting $DESC" $NAME
+        if ! start-stop-daemon --start --oknodo -b \
+            -m --pidfile $PIDFILE -c $DAEMON_UID:$DAEMON_GID --exec $DAEMON -- $DAEMON_OPTS
+        then
+            log_end_msg 1
+        else
+            log_end_msg 0
+        fi
+        ;;
+    stop)
+        log_daemon_msg "Stopping $DESC" $NAME
+        if start-stop-daemon --stop --retry 30 --oknodo --quiet \
+            --pidfile $PIDFILE --exec $DAEMON
+        then
+            rm -f $PIDFILE
+            log_end_msg 0
+        else
+            log_end_msg 1
+        fi
+        ;;
+    restart)
+        $0 stop
+        $0 start
+        ;;
+    status)
+        status_of_proc -p "$PIDFILE" "$DAEMON" dnscrypt-proxy && exit 0 || exit $?
+        ;;
+    *)
+        echo "Usage: $SCRIPTNAME {start|stop|restart|status}" >&2
+        exit 1
+        ;;
+esac
+
+exit 0
